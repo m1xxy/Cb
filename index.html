@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coffee Bar | Premium Luxury Coffee</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        coffee: {
+                            light: '#EADDCE',
+                            DEFAULT: '#4A3525',
+                            dark: '#2A1C13',
+                            accent: '#D4AF37', // Gold
+                        },
+                        glass: {
+                            light: 'rgba(255, 255, 255, 0.65)',
+                            border: 'rgba(255, 255, 255, 0.4)',
+                        }
+                    },
+                    borderRadius: {
+                        'glass': '28px',
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 20px rgba(212, 175, 55, 0.3)',
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        gradient: {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Styles for GlassOS effects and custom scrollbar -->
+    <style>
+        body {
+            background-color: #FDFBF7;
+            color: #2A1C13;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ThreeJS Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-nav {
+            background: rgba(253, 251, 247, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Liquid Button */
+        .btn-liquid {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        .btn-liquid::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.4s ease-out;
+            pointer-events: none;
+        }
+
+        .btn-liquid:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(74, 53, 37, 0.1);
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+
+        .btn-liquid:hover::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .btn-dark {
+            background: #2A1C13;
+            color: #FDFBF7;
+            border: 1px solid #4A3525;
+        }
+        
+        .btn-dark:hover {
+            background: #1a110b;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(74, 53, 37, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 53, 37, 0.4);
+        }
+
+        /* Hide Scrollbar for horizontal lists */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Loader */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: #FDFBF7;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease-out;
+        }
+
+        .cb-logo-font {
+            font-family: 'Cinzel', serif;
+            letter-spacing: -2px;
+        }
+
+        /* Menu Item Hover */
+        .menu-item-card {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .menu-item-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 0 20px rgba(212, 175, 55, 0.1);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        /* Price Toggle Switch */
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background-color: rgba(74, 53, 37, 0.1);
+            border-radius: 999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle-switch.hot {
+            background-color: rgba(212, 175, 55, 0.2);
+        }
+        .toggle-knob {
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .toggle-switch.hot .toggle-knob {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-coffee-accent selection:text-white">
+
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="text-center">
+            <div class="text-6xl text-coffee-dark mb-4 cb-logo-font animate-float"><span class="italic">C</span>B</div>
+            <div class="w-32 h-[1px] bg-coffee-dark/20 mx-auto relative overflow-hidden">
+                <div class="absolute top-0 left-0 h-full bg-coffee-accent w-1/2 animate-[gradient_1s_ease-in-out_infinite_alternate]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ThreeJS Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass-nav transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- Logo -->
+            <a href="#" class="flex flex-col items-center group">
+                <div class="text-3xl font-serif font-bold text-coffee-dark cb-logo-font group-hover:text-coffee-accent transition-colors"><span class="italic">C</span>B</div>
+                <div class="text-[10px] tracking-widest uppercase font-semibold text-coffee-dark/70 mt-1">Coffee Bar</div>
+            </a>
+
+            <!-- Desktop Links -->
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#home" class="text-sm font-medium hover:text-coffee-accent transition-colors">Home</a>
+                <a href="#menu" class="text-sm font-medium hover:text-coffee-accent transition-colors">Menu</a>
+                <a href="#about" class="text-sm font-medium hover:text-coffee-accent transition-colors">About</a>
+                <a href="#contact" class="text-sm font-medium hover:text-coffee-accent transition-colors">Contact</a>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-4">
+                <button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:scale-105 transition-transform">
+                    <svg class="w-5 h-5 text-coffee-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                </button>
+                <button class="md:hidden w-10 h-10 rounded-full glass-panel flex items-center justify-center">
+                    <svg class="w-5 h-5 text-coffee-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative min-h-[90vh] flex items-center justify-center pt-20 px-6">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-coffee-light/20 via-transparent to-transparent -z-10"></div>
+        
+        <div class="max-w-4xl mx-auto text-center z-10 flex flex-col items-center">
+            <span class="gsap-hero text-coffee-accent tracking-[0.2em] text-xs uppercase font-bold mb-4 block">Canal View Gujranwala</span>
+            <h1 class="gsap-hero text-5xl md:text-7xl lg:text-8xl font-serif text-coffee-dark leading-[1.1] mb-6">
+                Every Cup is an <br/><span class="italic font-light">Experience</span>
+            </h1>
+            <p class="gsap-hero text-lg md:text-xl text-coffee-dark/70 font-light mb-10 max-w-xl">
+                Freshly brewed premium coffee crafted with passion. Discover the new standard of luxury at Coffee Bar.
+            </p>
+            
+            <div class="gsap-hero flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <a href="#menu" class="btn-liquid rounded-full px-8 py-4 text-sm font-semibold text-coffee-dark tracking-wide inline-flex items-center justify-center">
+                    Explore Menu
+                </a>
+                <button class="btn-dark rounded-full px-8 py-4 text-sm font-semibold tracking-wide inline-flex items-center justify-center transition-all">
+                    Order Now
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section (The core requirement) -->
+    <section id="menu" class="py-24 px-4 md:px-8 relative z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-serif text-coffee-dark mb-4">Our Menu</h2>
+                <div class="w-16 h-[1px] bg-coffee-accent mx-auto"></div>
+            </div>
+
+            <!-- Categories Filter (Horizontal Scroll) -->
+            <div class="flex overflow-x-auto no-scrollbar space-x-3 mb-12 pb-4 snap-x" id="category-filters">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="menu-container">
+                <!-- Menu items populated by JS -->
+            </div>
+
+            <!-- Add-ons Section -->
+            <div class="mt-20 glass-panel rounded-glass p-6 md:p-10 text-center">
+                <h3 class="text-xs uppercase tracking-widest text-coffee-dark/50 font-bold mb-8">Customize Your Drink</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full border border-coffee-dark/20 flex items-center justify-center mb-3">
+                            <span class="text-xl">↑</span>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wide">Up Size</span>
+                        <span class="text-sm font-serif mt-1">245/-</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full border border-coffee-dark/20 flex items-center justify-center mb-3">
+                            <span class="text-xl">☁️</span>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wide">Cold Foam</span>
+                        <span class="text-sm font-serif mt-1">145/-</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full border border-coffee-dark/20 flex items-center justify-center mb-3">
+                            <span class="text-xl">🥃</span>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wide">Extra Shot</span>
+                        <span class="text-sm font-serif mt-1">195/-</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full border border-coffee-dark/20 flex items-center justify-center mb-3">
+                            <span class="text-xl">🧴</span>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wide">Syrup Pump</span>
+                        <span class="text-sm font-serif mt-1">75/-</span>
+                    </div>
+                </div>
+                <div class="mt-8 pt-6 border-t border-coffee-dark/10">
+                    <p class="text-xs tracking-widest text-coffee-dark/60 font-serif uppercase">Thank you for choosing Coffee Bar</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Modal (Simulating separate product page) -->
+    <div id="product-modal" class="fixed inset-0 z-[100] flex items-end md:items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-coffee-dark/40 backdrop-blur-sm" onclick="closeModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="bg-[#FDFBF7]/90 backdrop-blur-2xl w-full md:w-auto md:min-w-[600px] md:max-w-2xl h-[85vh] md:h-auto md:max-h-[90vh] rounded-t-[32px] md:rounded-[32px] shadow-2xl relative flex flex-col transform translate-y-full md:translate-y-0 transition-transform duration-500 overflow-hidden border border-white/50" id="modal-panel">
+            
+            <!-- Close Button -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/5 flex items-center justify-center z-10 hover:bg-black/10 transition-colors">
+                <svg class="w-4 h-4 text-coffee-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- Image Area (Placeholder for HD Image) -->
+            <div class="h-48 md:h-64 bg-gradient-to-br from-coffee-light/40 to-transparent relative flex items-center justify-center border-b border-black/5">
+                <div class="text-6xl opacity-50" id="modal-icon">☕</div>
+                <div class="absolute bottom-4 left-6">
+                    <span class="px-3 py-1 rounded-full bg-white/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-coffee-dark" id="modal-category">Category</span>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-3xl font-serif text-coffee-dark" id="modal-title">Product Name</h3>
+                    <button class="text-coffee-accent hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                    </button>
+                </div>
+                <p class="text-sm text-coffee-dark/60 font-light mb-6">A premium blend crafted with precision. Smooth, rich, and unforgettable.</p>
+
+                <!-- Customization -->
+                <div class="space-y-6">
+                    <!-- Type (Hot/Iced) if applicable -->
+                    <div id="modal-type-selector" class="hidden">
+                        <p class="text-xs font-bold uppercase tracking-wide mb-3">Preparation</p>
+                        <div class="flex space-x-3">
+                            <button class="flex-1 py-3 rounded-xl border border-coffee-dark/20 text-sm font-medium transition-colors" id="btn-hot" onclick="setModalType('hot')">Hot</button>
+                            <button class="flex-1 py-3 rounded-xl border border-coffee-dark/20 text-sm font-medium transition-colors" id="btn-iced" onclick="setModalType('iced')">Iced</button>
+                        </div>
+                    </div>
+
+                    <!-- Add-ons (Visual only) -->
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wide mb-3">Add-ons</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-4 py-2 rounded-lg border border-coffee-dark/10 text-xs text-coffee-dark/70 hover:border-coffee-accent cursor-pointer transition-colors">+ Extra Shot (195/-)</span>
+                            <span class="px-4 py-2 rounded-lg border border-coffee-dark/10 text-xs text-coffee-dark/70 hover:border-coffee-accent cursor-pointer transition-colors">+ Cold Foam (145/-)</span>
+                            <span class="px-4 py-2 rounded-lg border border-coffee-dark/10 text-xs text-coffee-dark/70 hover:border-coffee-accent cursor-pointer transition-colors">+ Vanilla Syrup (75/-)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer / Action -->
+            <div class="p-6 border-t border-black/5 bg-white/50 backdrop-blur-md flex justify-between items-center">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-coffee-dark/50">Total Price</p>
+                    <p class="text-2xl font-serif text-coffee-dark font-semibold" id="modal-price">0/-</p>
+                </div>
+                <button class="btn-dark px-8 py-3 rounded-full text-sm font-medium shadow-lg flex items-center space-x-2" onclick="addToCart()">
+                    <span>Add to Order</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="contact" class="bg-coffee-dark text-[#FDFBF7] py-16 px-6 rounded-t-[40px] mt-20 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                <!-- Brand -->
+                <div>
+                    <div class="text-4xl font-serif font-bold cb-logo-font text-coffee-accent mb-4"><span class="italic">C</span>B</div>
+                    <p class="text-sm font-light opacity-70 mb-6">Canal View Gujranwala.<br/>Freshly brewed premium coffee.</p>
+                </div>
+                
+                <!-- Links -->
+                <div>
+                    <h4 class="font-serif text-lg mb-4 text-coffee-accent">Explore</h4>
+                    <ul class="space-y-2 text-sm font-light opacity-70">
+                        <li><a href="#" class="hover:text-white transition-colors">Menu</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Our Story</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Gallery</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact -->
+                <div>
+                    <h4 class="font-serif text-lg mb-4 text-coffee-accent">Contact</h4>
+                    <ul class="space-y-2 text-sm font-light opacity-70">
+                        <li>info@coffeebar.pk</li>
+                        <li>Gujranwala, Pakistan</li>
+                    </ul>
+                </div>
+
+                <!-- Social -->
+                <div>
+                    <h4 class="font-serif text-lg mb-4 text-coffee-accent">Follow Us</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors">IG</a>
+                        <a href="#" class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors">FB</a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-16 pt-8 border-t border-white/10 text-center text-xs font-light opacity-50 flex flex-col md:flex-row justify-between items-center">
+                <p>&copy; 2026 Coffee Bar. All rights reserved.</p>
+                <p class="mt-2 md:mt-0">Premium Luxury Experience</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- Data Structure based on the provided menu image ---
+        const menuData = [
+            {
+                id: 'espresso',
+                name: 'Espresso Based',
+                icon: '☕',
+                items: [
+                    { name: 'Espresso', iced: null, hot: 395 },
+                    { name: 'Americano', iced: 475, hot: 475 },
+                    { name: 'Cafe Latte', iced: 575, hot: 575 },
+                    { name: 'Cappuccino', iced: 575, hot: 575 },
+                    { name: 'Cortado', iced: 575, hot: 575 },
+                    { name: 'Flat White', iced: 575, hot: 575 }
+                ]
+            },
+            {
+                id: 'flavoured',
+                name: 'Flavoured Coffee',
+                icon: '🍯',
+                items: [
+                    { name: 'Caramel Latte', iced: 695, hot: 695 },
+                    { name: 'Hazelnut Latte', iced: 695, hot: 695 },
+                    { name: 'Spanish Latte', iced: 695, hot: 695 },
+                    { name: 'Mocha Latte', iced: 725, hot: 725 },
+                    { name: 'Vanilla Latte', iced: 695, hot: 695 }
+                ]
+            },
+            {
+                id: 'signature',
+                name: 'Signature Latte',
+                icon: '✨',
+                items: [
+                    { name: 'Tiramisu Latte', iced: 845, hot: 845 },
+                    { name: 'Butterscotch Latte', iced: 845, hot: 845 },
+                    { name: 'Irish Cream Latte', iced: 845, hot: 845 },
+                    { name: 'Oreo Cream Latte', iced: 845, hot: 845 },
+                    { name: 'Honey Cloud Latte', iced: 875, hot: 875 },
+                    { name: 'Peanut Butter Latte', iced: 875, hot: 875 },
+                    { name: 'Pistachio Latte', iced: 875, hot: 875 },
+                    { name: 'Lotus Biscoff Latte', iced: 875, hot: 875 }
+                ]
+            },
+            {
+                id: 'frappe',
+                name: 'Frappe',
+                icon: '🥤',
+                items: [
+                    { name: 'Caramel Frappe', iced: 945, hot: null },
+                    { name: 'Cookies & Cream', iced: 975, hot: null },
+                    { name: 'Hazelnut Frappe', iced: 945, hot: null },
+                    { name: 'Chocolate Frappe', iced: 945, hot: null },
+                    { name: 'Vanilla Frappe', iced: 945, hot: null }
+                ]
+            },
+            {
+                id: 'matcha',
+                name: 'Matcha Series',
+                icon: '🍵',
+                items: [
+                    { name: 'Mixed Berry Matcha', iced: 895, hot: 895 },
+                    { name: 'Strawberry Matcha', iced: 875, hot: 875 },
+                    { name: 'Mango Matcha', iced: 875, hot: 875 },
+                    { name: 'Spanish Matcha', iced: 875, hot: 875 },
+                    { name: 'Matcha Latte', iced: 795, hot: 795 },
+                    { name: 'Honey Cloud Matcha', iced: 895, hot: 995 }
+                ]
+            },
+            {
+                id: 'refreshers',
+                name: 'Refreshers & Coolers',
+                icon: '🍹',
+                items: [
+                    { name: 'Peach Iced Tea', iced: 595, hot: null },
+                    { name: 'Mango Iced Tea', iced: 595, hot: null },
+                    { name: 'Strawberry Cooler', iced: 395, hot: null },
+                    { name: 'Blueberry Cooler', iced: 395, hot: null },
+                    { name: 'Green Apple Cooler', iced: 395, hot: null }
+                ]
+            },
+            {
+                id: 'others',
+                name: 'Others',
+                icon: '🍫',
+                items: [
+                    { name: 'Hot Chocolate', iced: null, hot: 695 }
+                ]
+            }
+        ];
+
+        // --- State Management ---
+        let activeCategory = 'espresso';
+        let currentModalItem = null;
+
+        // --- DOM Elements ---
+        const categoryFiltersEl = document.getElementById('category-filters');
+        const menuContainerEl = document.getElementById('menu-container');
+
+        // --- Initialization ---
+        function initMenu() {
+            renderFilters();
+            renderMenu(activeCategory);
+        }
+
+        // --- Render Functions ---
+        function renderFilters() {
+            categoryFiltersEl.innerHTML = menuData.map(cat => `
+                <button 
+                    onclick="switchCategory('${cat.id}')"
+                    class="snap-center whitespace-nowrap px-5 py-2.5 rounded-full border transition-all duration-300 ${activeCategory === cat.id ? 'bg-coffee-dark text-white border-coffee-dark shadow-lg' : 'bg-white/50 border-black/10 text-coffee-dark hover:border-coffee-accent'}"
+                    id="filter-${cat.id}"
+                >
+                    <span class="mr-1">${cat.icon}</span> ${cat.name}
+                </button>
+            `).join('');
+        }
+
+        function switchCategory(id) {
+            activeCategory = id;
+            renderFilters();
+            
+            // Animate out
+            gsap.to('.menu-item-card', {
+                opacity: 0,
+                y: 20,
+                stagger: 0.02,
+                duration: 0.3,
+                onComplete: () => {
+                    renderMenu(id);
+                }
+            });
+        }
+
+        function renderMenu(categoryId) {
+            const category = menuData.find(c => c.id === categoryId);
+            if (!category) return;
+
+            menuContainerEl.innerHTML = category.items.map((item, index) => {
+                const hasBoth = item.iced && item.hot;
+                const basePrice = item.iced || item.hot;
+                const defaultType = item.iced ? 'iced' : 'hot';
+                
+                // Create unique ID for the item to handle toggles independently
+                const itemId = `${categoryId}-${index}`;
+                
+                return `
+                    <div class="menu-item-card glass-panel rounded-glass p-5 flex flex-col justify-between h-full opacity-0 translate-y-4" onclick="openModal('${categoryId}', ${index})">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-serif text-lg font-bold text-coffee-dark leading-tight">${item.name}</h4>
+                                <p class="text-[10px] uppercase tracking-wider text-coffee-dark/50 mt-1">${category.name}</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-coffee-light/50 to-transparent flex items-center justify-center text-lg">
+                                ${category.icon}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-auto pt-4 border-t border-black/5 flex justify-between items-end">
+                            <div class="flex flex-col">
+                                ${hasBoth ? `
+                                    <div class="flex items-center space-x-2 mb-1" onclick="event.stopPropagation()">
+                                        <span class="text-[10px] font-bold text-blue-500/80">ICED</span>
+                                        <div class="toggle-switch ${defaultType === 'hot' ? 'hot' : ''}" id="toggle-${itemId}" onclick="togglePrice(this, '${item.iced}', '${item.hot}', 'price-${itemId}')">
+                                            <div class="toggle-knob"></div>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-red-500/80">HOT</span>
+                                    </div>
+                                ` : `
+                                    <span class="text-[10px] font-bold text-coffee-dark/50 mb-1">${item.iced ? 'ICED ONLY' : 'HOT ONLY'}</span>
+                                `}
+                                <span class="text-xl font-serif font-semibold text-coffee-dark" id="price-${itemId}">${basePrice}/-</span>
+                            </div>
+                            
+                            <button class="w-8 h-8 rounded-full bg-coffee-dark text-white flex items-center justify-center hover:bg-coffee-accent transition-colors shadow-md" onclick="event.stopPropagation(); openModal('${categoryId}', ${index})">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Animate in
+            gsap.to('.menu-item-card', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.05,
+                duration: 0.5,
+                ease: "power2.out"
+            });
+        }
+
+        // Inline toggle logic for cards
+        function togglePrice(element, icedPrice, hotPrice, priceElementId) {
+            element.classList.toggle('hot');
+            const priceEl = document.getElementById(priceElementId);
+            if (element.classList.contains('hot')) {
+                priceEl.innerText = `${hotPrice}/-`;
+            } else {
+                priceEl.innerText = `${icedPrice}/-`;
+            }
+        }
+
+        // --- Modal Logic ---
+        function openModal(categoryId, itemIndex) {
+            const category = menuData.find(c => c.id === categoryId);
+            const item = category.items[itemIndex];
+            currentModalItem = { ...item, defaultType: item.iced ? 'iced' : 'hot' };
+
+            document.getElementById('modal-title').innerText = item.name;
+            document.getElementById('modal-category').innerText = category.name;
+            document.getElementById('modal-icon').innerText = category.icon;
+            
+            const typeSelector = document.getElementById('modal-type-selector');
+            const btnHot = document.getElementById('btn-hot');
+            const btnIced = document.getElementById('btn-iced');
+
+            if (item.hot && item.iced) {
+                typeSelector.classList.remove('hidden');
+                setModalType('iced'); // Default to iced if both exist
+            } else {
+                typeSelector.classList.add('hidden');
+                document.getElementById('modal-price').innerText = `${item.hot || item.iced}/-`;
+            }
+
+            const modal = document.getElementById('product-modal');
+            const panel = document.getElementById('modal-panel');
+            
+            modal.classList.remove('hidden');
+            // Small delay to allow display block to apply before animating opacity
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                if(window.innerWidth < 768) {
+                     panel.classList.remove('translate-y-full');
+                } else {
+                     panel.classList.add('scale-100');
+                     panel.classList.remove('scale-95');
+                }
+            }, 10);
+        }
+
+        function setModalType(type) {
+            const btnHot = document.getElementById('btn-hot');
+            const btnIced = document.getElementById('btn-iced');
+            
+            if (type === 'hot') {
+                btnHot.classList.add('bg-coffee-dark', 'text-white', 'border-coffee-dark');
+                btnHot.classList.remove('text-coffee-dark');
+                btnIced.classList.remove('bg-coffee-dark', 'text-white', 'border-coffee-dark');
+                btnIced.classList.add('text-coffee-dark');
+                document.getElementById('modal-price').innerText = `${currentModalItem.hot}/-`;
+            } else {
+                btnIced.classList.add('bg-coffee-dark', 'text-white', 'border-coffee-dark');
+                btnIced.classList.remove('text-coffee-dark');
+                btnHot.classList.remove('bg-coffee-dark', 'text-white', 'border-coffee-dark');
+                btnHot.classList.add('text-coffee-dark');
+                document.getElementById('modal-price').innerText = `${currentModalItem.iced}/-`;
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('product-modal');
+            const panel = document.getElementById('modal-panel');
+            
+            modal.classList.add('opacity-0');
+             if(window.innerWidth < 768) {
+                     panel.classList.add('translate-y-full');
+                }
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                currentModalItem = null;
+            }, 300); // match transition duration
+        }
+
+        function addToCart() {
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span>Added!</span> <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            btn.classList.add('bg-green-700', 'border-green-700');
+            
+            setTimeout(() => {
+                closeModal();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('bg-green-700', 'border-green-700');
+                }, 300);
+            }, 800);
+        }
+
+        // --- Three.js Background Animation ---
+        function initThreeJS() {
+            const canvas = document.getElementById('bg-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 300; // Keep it light for performance
+            const posArray = new Float32Array(particlesCount * 3);
+
+            for(let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 10;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            // Create a soft glowing material
+            const material = new THREE.PointsMaterial({
+                size: 0.03,
+                color: 0xC5A059, // Gold/Coffee accent
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particlesMesh = new THREE.Points(particlesGeometry, material);
+            scene.add(particlesMesh);
+            camera.position.z = 3;
+
+            // Mouse interaction
+            let mouseX = 0;
+            let mouseY = 0;
+            let targetX = 0;
+            let targetY = 0;
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - windowHalfX);
+                mouseY = (event.clientY - windowHalfY);
+            });
+
+            // Animation Loop
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+
+                targetX = mouseX * 0.001;
+                targetY = mouseY * 0.001;
+
+                // Slow rotation
+                particlesMesh.rotation.y += 0.001;
+                particlesMesh.rotation.x += 0.0005;
+
+                // Gentle wave movement based on time
+                const positions = particlesGeometry.attributes.position.array;
+                for(let i = 0; i < particlesCount; i++) {
+                    const i3 = i * 3;
+                    const x = positions[i3];
+                    // Simple vertical sway
+                    positions[i3 + 1] += Math.sin(elapsedTime * 0.5 + x) * 0.002; 
+                }
+                particlesGeometry.attributes.position.needsUpdate = true;
+
+                // Parallax effect with mouse
+                particlesMesh.rotation.y += 0.05 * (targetX - particlesMesh.rotation.y);
+                particlesMesh.rotation.x += 0.05 * (targetY - particlesMesh.rotation.x);
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // --- Run on Load ---
+        window.addEventListener('load', () => {
+            // Remove Loader
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    
+                    // Trigger initial animations
+                    gsap.fromTo('.gsap-hero', 
+                        { y: 30, opacity: 0 }, 
+                        { y: 0, opacity: 1, duration: 1, stagger: 0.2, ease: "power3.out" }
+                    );
+                }, 800);
+            }, 1000);
+
+            initMenu();
+            
+            // Only init ThreeJS on desktop for better mobile performance, or keep it lightweight
+            if (window.innerWidth > 768) {
+                 initThreeJS();
+            }
+
+            // Navbar Scroll Effect
+            window.addEventListener('scroll', () => {
+                const nav = document.getElementById('navbar');
+                if (window.scrollY > 50) {
+                    nav.classList.add('shadow-glass');
+                    nav.style.background = 'rgba(253, 251, 247, 0.85)';
+                } else {
+                    nav.classList.remove('shadow-glass');
+                    nav.style.background = 'rgba(253, 251, 247, 0.7)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
